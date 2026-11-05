@@ -15,7 +15,8 @@ Both interfaces use FFmpeg, supplied by the `imageio-ffmpeg` package.
 
 ## Download the Windows installer
 
-Download `VideoLandscaper-Setup.exe` from this repository's **Releases** page. The
+Download [`VideoLandscaper-Setup.exe`](https://github.com/pbrewton/Video-Landscaper/releases/latest/download/VideoLandscaper-Setup.exe)
+from this repository's **Releases** page. The
 installer creates a **Video Landscaper** Start Menu shortcut. The installed
 app includes Python and FFmpeg; users do not need to install them separately.
 
