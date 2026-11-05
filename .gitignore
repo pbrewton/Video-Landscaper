@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+/build/
+/dist/
+
+# Generated Windows applications and installers; keep the hand-maintained .spec.
+*.exe
+
+# Personal media, originals, and per-folder batch recovery files.
+*.mp4
+*.mov
+*.m4v
+*.mkv
+*.avi
+*.webm
+*.wmv
+*.mpg
+*.mpeg
+*.mts
+*.m2ts
+*.3gp
+*.ogv
+*.original
+.pillarbox-batch*
+.video-landscaper-batch*

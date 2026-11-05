@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-landscaper"
+version = "0.1.0"
+description = "Convert portrait videos to landscape with a moving, blurred background."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["imageio-ffmpeg>=0.6,<1"]
+classifiers = [
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Video :: Conversion",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["video_landscaper*"]
+
+[tool.setuptools]
+include-package-data = false
