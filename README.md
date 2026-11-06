@@ -3,7 +3,7 @@
 Convert portrait (vertical) videos to landscape (horizontal) format with
 beautifully blurred side backgrounds (the [“echo” pillarboxing](https://en.wikipedia.org/wiki/Pillarbox#Stylized_pillarboxing_on_television) effect).
 
-@@@ [Before-and-after illustration here]
+![Example Pillarbox](docs/images/example_pillarboxed.gif)
 
 Video Landscaper can also convert landscape videos to portrait format with
 blurred backgrounds above & below.
