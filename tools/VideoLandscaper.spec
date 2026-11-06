@@ -3,14 +3,57 @@ import hashlib
 from importlib.metadata import version
 import json
 from pathlib import Path
+import re
 import sys
+import tomllib
 
 import imageio_ffmpeg
 
 from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo,
+    StringFileInfo,
+    StringStruct,
+    StringTable,
+    VarFileInfo,
+    VarStruct,
+    VSVersionInfo,
+)
 
 # SPECPATH is supplied by PyInstaller and points to this spec's directory.
 project_root = Path(SPECPATH).parent
+project_metadata = tomllib.loads((project_root / 'pyproject.toml').read_text(encoding='utf-8'))['project']
+app_version = project_metadata['version']
+version_pattern = r'(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,4})'
+if not isinstance(app_version, str) or not re.fullmatch(version_pattern, app_version):
+    raise SystemExit('Use a numeric MAJOR.MINOR.PATCH version in pyproject.toml for Windows builds.')
+version_numbers = tuple(int(part) for part in app_version.split('.'))
+if any(part > 65535 for part in version_numbers):
+    raise SystemExit('Each version component in pyproject.toml must be at most 65535 for Windows builds.')
+windows_version = version_numbers + (0,)
+file_version = '.'.join(str(part) for part in windows_version)
+
+
+def version_resource(description, internal_name):
+    return VSVersionInfo(
+        ffi=FixedFileInfo(filevers=windows_version, prodvers=windows_version),
+        kids=[
+            StringFileInfo([
+                StringTable('040904B0', [
+                    StringStruct('ProductName', 'Video Landscaper'),
+                    StringStruct('ProductVersion', app_version),
+                    StringStruct('FileVersion', file_version),
+                    StringStruct('FileDescription', description),
+                    StringStruct('InternalName', internal_name),
+                    StringStruct('OriginalFilename', f'{internal_name}.exe'),
+                    StringStruct('LegalCopyright', 'Copyright (c) 2026 Video Landscaper contributors'),
+                ]),
+            ]),
+            VarFileInfo([VarStruct('Translation', [1033, 1200])]),
+        ],
+    )
+
+
 license_dir = project_root / 'licenses'
 provenance = json.loads((license_dir / 'provenance.json').read_text(encoding='utf-8'))
 
@@ -75,6 +118,7 @@ gui_exe = EXE(
     [],
     exclude_binaries=True,
     name='VideoLandscaper-gui',
+    version=version_resource('Video Landscaper GUI', 'VideoLandscaper-gui'),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -93,6 +137,7 @@ cli_exe = EXE(
     [],
     exclude_binaries=True,
     name='VideoLandscaper-cli',
+    version=version_resource('Video Landscaper CLI', 'VideoLandscaper-cli'),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

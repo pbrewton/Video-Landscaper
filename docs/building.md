@@ -19,6 +19,18 @@ The environment does not need to be activated. Commands below use its Python
 explicitly. The build script uses installed dependencies and does not install or
 upgrade anything itself.
 
+## Set the application version
+
+The application version is `project.version` in [pyproject.toml](../pyproject.toml).
+The next release uses `0.2.0`. For future releases, edit that field and rebuild
+the app and installer with `.\tools\build.ps1 -Installer`.
+
+Use three numeric components, `MAJOR.MINOR.PATCH`, each from 0 to 65535. The
+PyInstaller spec reads this value directly and embeds version information in both
+executables. Version `0.2.0` maps to the Windows numeric version `0.2.0.0`.
+NSIS reads the versions from the built GUI and CLI, checks that they match, and
+uses the application version for the installer metadata and Installed Apps entry.
+
 ## Build the app folder
 
 ```powershell
@@ -121,6 +133,12 @@ including a machine without Python or FFmpeg installed. Check the GUI's portrait
 batch conversion and original-file renaming. Check the CLI's `--help`, default
 landscape output, and custom portrait output. Use copies of videos and check the
 Start Menu shortcut and uninstaller as well.
+
+In File Explorer, right-click each GUI, CLI, and setup executable, open
+**Properties → Details**, and check its product name, version, and file description.
+The product version for this release is `0.2.0`. The GUI and CLI descriptions
+identify their respective interfaces. After installing, confirm that Windows
+**Settings → Apps → Installed apps** shows **Video Landscaper** with version `0.2.0`.
 
 Commit the source, `.spec`, `.nsi`, and build instructions to GitHub. Attach the
 finished installer to a GitHub Release; generated `build` and `dist` folders are

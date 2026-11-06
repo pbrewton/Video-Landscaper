@@ -13,6 +13,21 @@ portable bundles made from it as local review builds until the items below are
 resolved. The Python source repository can be committed and published during
 this preparation.
 
+## Version the release
+
+The next release is `0.2.0`, with Git tag `v0.2.0`. Keep the published `v0.1.0`
+release and its tag intact.
+
+Set `project.version` in [pyproject.toml](../pyproject.toml) before testing and
+building. The spec reads that version for both executables, and NSIS derives the
+installer version from those built files. For future releases, update that one
+field and rebuild the app and installer using `.\tools\build.ps1 -Installer`.
+
+When the release preparation is complete, build and test the commit containing
+the version change. Create `v0.2.0` for that same commit and attach the artifacts
+from that build. Check the executable metadata and Windows Installed Apps entry
+against `0.2.0`, following [building.md](building.md).
+
 ## Resolve the FFmpeg materials
 
 The exact executable and provider are recorded in

@@ -24,6 +24,21 @@
   !error "Build the PyInstaller onedir app first: ${APP_DIR}\${CLI_EXE} was not found."
 !endif
 
+; The payload versions originate in pyproject.toml. Read the built executables
+; rather than keeping a second app-version constant in this installer script.
+; Without /noerrors, missing version resources stop compilation.
+!getdllversion "${APP_DIR}\${GUI_EXE}" GUI_VERSION_
+!getdllversion "${APP_DIR}\${CLI_EXE}" CLI_VERSION_
+!define FILE_VERSION "${GUI_VERSION_1}.${GUI_VERSION_2}.${GUI_VERSION_3}.${GUI_VERSION_4}"
+!define CLI_FILE_VERSION "${CLI_VERSION_1}.${CLI_VERSION_2}.${CLI_VERSION_3}.${CLI_VERSION_4}"
+!if "${FILE_VERSION}" != "${CLI_FILE_VERSION}"
+  !error "GUI and CLI versions differ (${FILE_VERSION} vs ${CLI_FILE_VERSION}). Rebuild both executables before packaging."
+!endif
+!if ${GUI_VERSION_4} != 0
+  !error "Expected a three-component app version with a zero fourth file-version component. Rebuild the app from pyproject.toml."
+!endif
+!define APP_VERSION "${GUI_VERSION_1}.${GUI_VERSION_2}.${GUI_VERSION_3}"
+
 Name "${NAME}"
 OutFile "${__FILEDIR__}\..\dist\${APP_ID}-Setup.exe"
 Unicode True
@@ -48,6 +63,16 @@ InstallDirRegKey HKCU "${REGPATH_UNINSTSUBKEY}" "InstallLocation"
 !insertmacro MUI_UNPAGE_FINISH
 
 !insertmacro MUI_LANGUAGE "English"
+
+VIProductVersion "${FILE_VERSION}"
+VIFileVersion "${FILE_VERSION}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${NAME}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${APP_VERSION}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${FILE_VERSION}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "${NAME} Setup"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "OriginalFilename" "${APP_ID}-Setup.exe"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "Copyright (c) 2026 Video Landscaper contributors"
+
 ; The welcome page directly precedes copying, so label its action Next.
 InstallButtonText "&Next >"
 
@@ -78,6 +103,7 @@ Section "Install"
 
   WriteUninstaller "$InstDir\Uninstall.exe"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "DisplayName" "${NAME}"
+  WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "DisplayVersion" "${APP_VERSION}"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "DisplayIcon" "$InstDir\${GUI_EXE},0"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "InstallLocation" "$InstDir"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "UninstallString" '"$InstDir\Uninstall.exe"'
