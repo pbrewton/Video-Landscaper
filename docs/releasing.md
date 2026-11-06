@@ -85,10 +85,16 @@ Once the source-provision work is complete, follow
 
 Inspect `dist/VideoLandscaper/_internal` for `LICENSE`,
 `THIRD_PARTY_NOTICES.md`, and the `licenses` folder. Verify that the packaged
-executable hash matches the provenance record. Test installation, conversion,
-and uninstallation on Windows using copies of videos.
+FFmpeg executable hash matches the provenance record.
+
+Check that `dist/VideoLandscaper` contains `VideoLandscaper-gui.exe`,
+`VideoLandscaper-cli.exe`, and their shared `_internal` folder. Test the GUI's
+portrait-to-landscape batch conversion and the CLI's default landscape and custom
+portrait output. Test installation and uninstallation on Windows using copies of
+videos. The **Video Landscaper** Start Menu shortcut should open the GUI.
 
 Commit the source, notices, licenses, and build changes together. Attach the
-installer and any portable ZIP, plus the corresponding-source access information,
-to the release tagged for that commit. Keep large generated/source archives in
-Releases rather than the Git source history.
+`VideoLandscaper-Setup.exe` installer and any portable ZIP, plus the
+corresponding-source access information, to the release tagged for that commit.
+The portable ZIP must contain both executables and the shared `_internal` folder.
+Keep large generated/source archives in Releases rather than the Git source history.

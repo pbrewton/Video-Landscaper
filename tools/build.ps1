@@ -51,7 +51,8 @@ try {
         }
         Write-Host "Installer: $(Join-Path $ProjectRoot 'dist\VideoLandscaper-Setup.exe')"
     }
-    Write-Host "App: $(Join-Path $ProjectRoot 'dist\VideoLandscaper\VideoLandscaper.exe')"
+    Write-Host "GUI: $(Join-Path $ProjectRoot 'dist\VideoLandscaper\VideoLandscaper-gui.exe')"
+    Write-Host "CLI: $(Join-Path $ProjectRoot 'dist\VideoLandscaper\VideoLandscaper-cli.exe')"
 }
 finally {
     Pop-Location

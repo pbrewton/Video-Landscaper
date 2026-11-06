@@ -1,29 +1,43 @@
 # Video Landscaper
 
-Video Landscaper converts portrait (vertical) videos to landscape (horizontal).
-It keeps the original picture centered and fills the sides with a blurred copy
-of the same video ([“echo” pillarboxing](https://en.wikipedia.org/wiki/Pillarbox#Stylized_pillarboxing_on_television)).
-It can also convert landscape videos to portrait by adding blurred bars above & below the picture.
+Convert portrait (vertical) videos to landscape (horizontal) format with
+beautifully blurred side backgrounds (the [“echo” pillarboxing](https://en.wikipedia.org/wiki/Pillarbox#Stylized_pillarboxing_on_television) effect).
 
-- **[Python command-line interface (CLI)](video-landscaper-single.py)** converts
-  one video at a time and lets you choose the output aspect ratio, blur strength,
-  and other settings. 
-- **Windows GUI** converts batches of portrait videos to 16:9. Run the [Python script](video-landscaper-batch.pyw)
-or install the app with the [Windows installer](#download-the-windows-installer).
+@@@ [Before-and-after illustration here]
 
-Both interfaces use FFmpeg, supplied by the `imageio-ffmpeg` package.
+Video Landscaper can also convert landscape videos to portrait format with
+blurred backgrounds above & below.
 
-## Download the Windows installer
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Portrait-to-Landscape Conversion** | Convert portrait videos to landscape with moving, blurred sidebars |
+| **Landscape-to-Portrait Conversion** | Convert landscape videos to portrait via the command-line interface (CLI) |
+| **Blurred Background Effect** | Fill unused screen space with an enlarged, blurred version of the original video, preserving its proportions without stretching or cropping the main footage |
+| **Batch Processing** | Convert multiple portrait videos to 16:9 landscape format in a single batch using an easy-to-use graphical user interface (GUI) |
+| **Customizable Conversion** | Convert individual videos via CLI, with control over output aspect ratio, blur strength, encoding quality, preview length, and more |
+| **Multiple Ways to Run** | Use the Windows GUI, command-line interface (CLI), or run the Python source scripts directly |
+| **Standalone Executables** | Run the compiled GUI and CLI apps without installing Python or FFmpeg separately |
+
+## Installation
+
+
+### Download the Windows installer
 
 Download [`VideoLandscaper-Setup.exe`](https://github.com/pbrewton/Video-Landscaper/releases/latest/download/VideoLandscaper-Setup.exe)
 from this repository's **Releases** page. The
-installer creates a **Video Landscaper** Start Menu shortcut. The installed
-app includes Python and FFmpeg; users do not need to install them separately.
+installer installs both GUI and CLI executables and creates a **Video Landscaper** Start Menu
+shortcut that opens the GUI. The installed app includes Python and FFmpeg; they do not need to be install separately.
+
+The installation folder is `%LOCALAPPDATA%\Programs\VideoLandscaper`.
+It contains `VideoLandscaper-gui.exe`, `VideoLandscaper-cli.exe`, and their shared
+`_internal` folder.
 
 This source tree does not publish releases automatically. See
 [Building the Windows app and installer](docs/building.md) to create a release.
 
-## Run from Python source
+### Run from Python source
 
 Use Python 3.11 or newer on Windows, including Tkinter (included with the normal
 python.org Windows installation). Only these two files are intended to be
@@ -34,7 +48,7 @@ launched directly:
 | `video-landscaper-batch.pyw` | Select and convert one or more portrait videos in a folder | `pyw video-landscaper-batch.pyw` |
 | `video-landscaper-single.py` | Convert one video with command-line options | `py video-landscaper-single.py "C:\Videos\portrait.mp4"` |
 
-Open PowerShell in your local copy of the [project folder](/) and run the following command to install the dependency:
+Open PowerShell in your local copy of the project folder and install the dependency:
 
 ```powershell
 py -m pip install -r requirements.txt
@@ -46,9 +60,20 @@ The launchers import the support code in `video_landscaper`; keep that folder
 beside them. Installing this project as a package is optional for running the
 launchers from the source tree.
 
-## Batch GUI
+## Usage
 
-From the [project folder](/) folder, start the graphical user interface:
+The GUI converts a batch of portrait videos to 16:9. The CLI converts one video
+at a time and supports custom settings.
+
+### Batch GUI
+
+After installing, open **Video Landscaper** from the Start Menu. You can also launch it from PowerShell:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-gui.exe"
+```
+
+To run the GUI from Python source, open PowerShell in the project folder:
 
 ```powershell
 pyw video-landscaper-batch.pyw
@@ -59,6 +84,12 @@ Use `py video-landscaper-batch.pyw` while debugging if you also want a console. 
 opens the GUI without a console via `pyw.exe`/`pythonw.exe`, based on Windows file
 associations.) An optional folder argument skips the initial folder chooser:
 `pyw video-landscaper-batch.pyw "C:\Videos"`.
+
+The installed GUI also accepts an optional folder:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-gui.exe" "C:\Videos"
+```
 
 1. Choose a drive or folder at the **Choose the location of your videos** prompt.
 2. The app examines files directly in that folder, without scanning subfolders.
@@ -113,17 +144,42 @@ Original files are renamed only by the batch GUI. The command-line converter
 below continues to preserve the original filename. The GUI uses the converter's
 Python function directly, so Python settings and FFmpeg processing are shared.
 
-## Convert a video
+### Single-video CLI
+
+Convert a portrait video from PowerShell:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe" "C:\Videos\portrait.mp4"
+```
+
+Or run the Python launcher from the project folder:
 
 ```powershell
 py video-landscaper-single.py "C:\Videos\portrait.mp4"
 ```
 
-Creates `C:\Videos\portrait-mp4_pillarboxed.mp4`. Use quotes around paths with spaces.
+This creates `C:\Videos\portrait-mp4_pillarboxed.mp4`. Use quotes around paths with spaces.
 The default output is an MP4 with H.264 video, with a maximum size of 1920 x 1080
 and a target aspect ratio of 16:9. Original audio streams
 are copied without re-encoding, preserving the compressed audio and its bitrate.
 Videos without audio are supported too.
+
+To convert a landscape video to a 9:16 portrait canvas, set the maximum width
+and height to, for example, 1080 and 1920:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe" "C:\Videos\landscape.mp4" --max-width 1080 --max-height 1920
+```
+
+The equivalent source command is:
+
+```powershell
+py video-landscaper-single.py "C:\Videos\landscape.mp4" --max-width 1080 --max-height 1920
+```
+
+This adds blurred bars above and below the clear landscape picture. The CLI's
+`--max-width` and `--max-height` options set the output bounds and target ratio
+together.
 
 The original picture is centered and kept whole. If either displayed source
 dimension exceeds its maximum, the clear picture is scaled down proportionally
@@ -156,7 +212,7 @@ phone rotation and non-square pixels, using the bundled FFmpeg; ffprobe is not
 required. The script does not impose a new frame rate. Non-square pixels are
 converted to square pixels for correct display proportions.
 
-## Quick preview and settings
+### Quick preview and settings
 
 Convert only the first 10 seconds and save to a different filename:
 
@@ -169,6 +225,11 @@ Try a 1280 x 720 maximum and faster encoding:
 ```powershell
 py video-landscaper-single.py "C:\Videos\portrait.mp4" --max-width 1280 --max-height 720 --preset fast
 ```
+
+The CLI executable and Python launcher accept the same options. The above
+examples use the Python launcher. To use the installed CLI, replace
+`py video-landscaper-single.py` with
+`& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe"`.
 
 Available settings:
 
@@ -202,6 +263,14 @@ HDR phone footage needs a separate color-handling pass before relying on its col
 Subtitles and data tracks are not copied.
 
 ## Help and verification
+
+Show the installed CLI's help:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe" --help
+```
+
+From the source project folder, show help or run the tests:
 
 ```powershell
 py video-landscaper-single.py --help
@@ -237,6 +306,7 @@ tools/
     build.ps1                   Windows build helper
 docs/
     building.md                 EXE and installer instructions
+    releasing.md                Release notices and source-provision review
 .github/workflows/tests.yml     Windows test workflow
 pyproject.toml                  Package metadata and dependency declaration
 requirements.txt               Runtime dependency for source users

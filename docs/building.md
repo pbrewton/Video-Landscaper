@@ -2,9 +2,9 @@
 
 The current reviewed Windows packaging environment uses Python 3.15.2 and
 imageio-ffmpeg 0.7.0. The spec checks these versions against the license reference.
-The two launchers at the project root
-run directly from source; these steps bundle the batch GUI for users who do not
-have Python installed.
+The two launchers at the project root run directly from source. These steps
+bundle both the batch GUI and single-video CLI for users who do not have Python
+installed.
 
 ## Prepare the build environment
 
@@ -31,23 +31,28 @@ and will generate:
 ```text
 dist/
 └── VideoLandscaper/
-    ├── VideoLandscaper.exe
+    ├── VideoLandscaper-gui.exe
+    ├── VideoLandscaper-cli.exe
     └── _internal/
 ```
 
-Keep this entire `VideoLandscaper` folder together. The exe needs its
-`_internal` folder, including the FFmpeg bundled by `imageio-ffmpeg`. The build is
-a `onedir`, windowed app, so users do not need a separate Python or FFmpeg
-installation. The build script replaces an existing app bundle when rebuilding.
+Keep this entire `VideoLandscaper` folder together. Both executables use the
+shared `_internal` folder, including the FFmpeg bundled by `imageio-ffmpeg`.
+`VideoLandscaper-gui.exe` opens the graphical batch interface without a console.
+`VideoLandscaper-cli.exe` runs the single-video converter in a console and accepts
+the same options as `py video-landscaper-single.py`. The `onedir` bundle includes
+Python and FFmpeg for both interfaces. The build script replaces an existing app
+bundle when rebuilding.
 The project's MIT `LICENSE`, `THIRD_PARTY_NOTICES.md`, and the `licenses` folder
 are included as readable files in `_internal`. The build also includes the
 interpreter's original license at `_internal/licenses/Python/LICENSE.txt`.
 
-The spec is a maintained build configuration, written in Python. It names the GUI
-launcher, collects `imageio_ffmpeg` and its FFmpeg executable, and configures the
-windowed bundle. Application modules use regular package imports, so a hidden
-import for the old hyphenated converter filename is no longer needed. The spec
-resolves source paths relative to its own location.
+The spec is a maintained build configuration, written in Python. It names both
+source launchers, collects `imageio_ffmpeg` and its FFmpeg executable, and creates
+the windowed GUI and console CLI in one app folder. Application modules use
+regular package imports, so a hidden import for the old hyphenated converter
+filename is no longer needed. The spec resolves source paths relative to its own
+location.
 
 To invoke PyInstaller without the `build.ps1` helper script, run this from the project root:
 
@@ -80,8 +85,23 @@ You can also compile the `.nsi` directly with NSIS after building the app folder
 
 A welcome page waits for **Next** before copying files.
 The installer copies the entire app folder `VideoLandscaper` into current user's default program folder
-(e.g. `%LOCALAPPDATA%\Programs`), creates the **Video Landscaper** Start Menu shortcut, and registers a
-per-user uninstaller.
+(e.g. `%LOCALAPPDATA%\Programs`), creates the **Video Landscaper** Start Menu shortcut
+that opens `VideoLandscaper-gui.exe`, and registers a per-user uninstaller.
+The CLI is installed alongside the GUI.
+
+Launch the GUI or use the CLI from PowerShell:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-gui.exe"
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe" --help
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe" "C:\Videos\portrait.mp4"
+```
+
+For landscape-to-portrait conversion with the CLI:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VideoLandscaper\VideoLandscaper-cli.exe" "C:\Videos\landscape.mp4" --max-width 1080 --max-height 1920
+```
 
 ## Verify and share a release
 
@@ -96,10 +116,11 @@ Run the source tests before building:
 .\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 ```
 
-Test `dist\VideoLandscaper\VideoLandscaper.exe` and the installer on Windows,
-including a machine without Python or FFmpeg installed. Use copies of videos to
-check conversion and original-file renaming. Check the Start Menu shortcut and
-uninstaller as well.
+Test both executables in `dist\VideoLandscaper` and the installer on Windows,
+including a machine without Python or FFmpeg installed. Check the GUI's portrait
+batch conversion and original-file renaming. Check the CLI's `--help`, default
+landscape output, and custom portrait output. Use copies of videos and check the
+Start Menu shortcut and uninstaller as well.
 
 Commit the source, `.spec`, `.nsi`, and build instructions to GitHub. Attach the
 finished installer to a GitHub Release; generated `build` and `dist` folders are

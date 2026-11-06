@@ -6,7 +6,8 @@
 !define SHORTCUT_NAME "${NAME}"
 !define APP_ID "VideoLandscaper"
 
-!define EXE "${APP_ID}.exe"
+!define GUI_EXE "${APP_ID}-gui.exe"
+!define CLI_EXE "${APP_ID}-cli.exe"
 !define APP_DIR "${__FILEDIR__}\..\dist\${APP_ID}"
 !define REGPATH_UNINSTSUBKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}"
 
@@ -14,9 +15,13 @@
 !include WinCore.nsh
 !include MUI2.nsh
 
-!if /FILEEXISTS "${APP_DIR}\${EXE}"
+!if /FILEEXISTS "${APP_DIR}\${GUI_EXE}"
 !else
-  !error "Build the PyInstaller onedir app first: ${APP_DIR}\${EXE} was not found."
+  !error "Build the PyInstaller onedir app first: ${APP_DIR}\${GUI_EXE} was not found."
+!endif
+!if /FILEEXISTS "${APP_DIR}\${CLI_EXE}"
+!else
+  !error "Build the PyInstaller onedir app first: ${APP_DIR}\${CLI_EXE} was not found."
 !endif
 
 Name "${NAME}"
@@ -66,12 +71,14 @@ Section "Install"
   SetOverwrite On
   ; Include the entire onedir bundle, preserving _internal and its contents.
   File /r "${APP_DIR}\*"
+  ; The new GUI/CLI pair replaces the old app-owned executable on upgrade.
+  Delete "$InstDir\${APP_ID}.exe"
 
-  CreateShortcut "$SMPrograms\${SHORTCUT_NAME}.lnk" "$InstDir\${EXE}"
+  CreateShortcut "$SMPrograms\${SHORTCUT_NAME}.lnk" "$InstDir\${GUI_EXE}"
 
   WriteUninstaller "$InstDir\Uninstall.exe"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "DisplayName" "${NAME}"
-  WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "DisplayIcon" "$InstDir\${EXE},0"
+  WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "DisplayIcon" "$InstDir\${GUI_EXE},0"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "InstallLocation" "$InstDir"
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "UninstallString" '"$InstDir\Uninstall.exe"'
   WriteRegStr HKCU "${REGPATH_UNINSTSUBKEY}" "QuietUninstallString" '"$InstDir\Uninstall.exe" /S'
@@ -82,7 +89,10 @@ SectionEnd
 Section "Uninstall"
   Delete "$SMPrograms\${SHORTCUT_NAME}.lnk"
   ; Remove only the known app payload, not the entire install directory tree.
-  Delete "$InstDir\${EXE}"
+  Delete "$InstDir\${GUI_EXE}"
+  Delete "$InstDir\${CLI_EXE}"
+  ; Also remove the previous single-executable payload after an upgrade.
+  Delete "$InstDir\${APP_ID}.exe"
   RMDir /r "$InstDir\_internal"
   Delete "$InstDir\Uninstall.exe"
   RMDir "$InstDir"

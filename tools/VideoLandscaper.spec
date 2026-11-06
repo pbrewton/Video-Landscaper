@@ -37,9 +37,11 @@ datas.append((str(project_root / 'THIRD_PARTY_NOTICES.md'), '.'))
 datas.append((str(license_dir), 'licenses'))
 datas.append((str(python_license), 'licenses/Python'))
 
+gui_launcher = (project_root / 'video-landscaper-batch.pyw').resolve()
+cli_launcher = (project_root / 'video-landscaper-single.py').resolve()
 
 a = Analysis(
-    [str(project_root / 'video-landscaper-batch.pyw')],
+    [str(gui_launcher), str(cli_launcher)],
     pathex=[str(project_root)],
     binaries=binaries,
     datas=datas,
@@ -53,17 +55,50 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
+# Analyze dependencies once so both executables share the same Python archive,
+# binaries, and data. Each executable must run only its own application launcher;
+# runtime-hook scripts are common to both and must run before that launcher.
+launcher_paths = {gui_launcher, cli_launcher}
+runtime_scripts = [entry for entry in a.scripts if Path(entry[1]).resolve() not in launcher_paths]
+
+
+def scripts_for(launcher):
+    entry_points = [entry for entry in a.scripts if Path(entry[1]).resolve() == launcher]
+    if len(entry_points) != 1:
+        raise SystemExit(f'Expected one analyzed entry point for {launcher}; found {len(entry_points)}.')
+    return runtime_scripts + entry_points
+
+
+gui_exe = EXE(
     pyz,
-    a.scripts,
+    scripts_for(gui_launcher),
     [],
     exclude_binaries=True,
-    name='VideoLandscaper',
+    name='VideoLandscaper-gui',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     console=False,
+    contents_directory='_internal',
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)
+cli_exe = EXE(
+    pyz,
+    scripts_for(cli_launcher),
+    [],
+    exclude_binaries=True,
+    name='VideoLandscaper-cli',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+    contents_directory='_internal',
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -71,7 +106,8 @@ exe = EXE(
     entitlements_file=None,
 )
 coll = COLLECT(
-    exe,
+    gui_exe,
+    cli_exe,
     a.binaries,
     a.datas,
     strip=False,
