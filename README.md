@@ -1,3 +1,5 @@
+<a name="readme"></a>
+
 # Video Landscaper
 
 Convert portrait (vertical) videos to landscape (horizontal) format with
