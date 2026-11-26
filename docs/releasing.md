@@ -15,18 +15,31 @@ this preparation.
 
 ## Version the release
 
-The next release is `0.2.0`, with Git tag `v0.2.0`. Keep the published `v0.1.0`
-release and its tag intact.
-
 Set `project.version` in [pyproject.toml](../pyproject.toml) before testing and
-building. The spec reads that version for both executables, and NSIS derives the
-installer version from those built files. For future releases, update that one
-field and rebuild the app and installer using `.\tools\build.ps1 -Installer`.
+building, using the `MAJOR.MINOR.PATCH` format described in
+[building.md](building.md#set-the-application-version). The spec reads that version
+for both executables, and NSIS derives the installer version from those built
+files. For each release, update that one field and rebuild the app and installer
+using `.\tools\build.ps1 -Installer`
+
+Use a Git tag consisting of `v` followed by that application version
+(`vMAJOR.MINOR.PATCH`). To display the expected version and tag without copying
+the number into another file, run this in PowerShell from the project root after
+preparing the build environment:
+
+```powershell
+$releaseVersion = & .\.venv\Scripts\python.exe -c "import pathlib, tomllib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text(encoding='utf-8'))['project']['version'])"
+Write-Output "Application version: $releaseVersion"
+Write-Output "Release tag: v$releaseVersion"
+```
+
+Keep all previously published releases and their tags intact.
 
 When the release preparation is complete, build and test the commit containing
-the version change. Create `v0.2.0` for that same commit and attach the artifacts
-from that build. Check the executable metadata and Windows Installed Apps entry
-against `0.2.0`, following [building.md](building.md).
+the version change. Create the matching release tag for that same commit and
+attach the artifacts from that build. Check the executable metadata and Windows
+Installed Apps entry against the application version in that commit's
+`pyproject.toml`, following [building.md](building.md).
 
 ## Resolve the FFmpeg materials
 
