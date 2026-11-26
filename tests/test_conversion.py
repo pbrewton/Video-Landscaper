@@ -2,6 +2,7 @@
 
 from contextlib import redirect_stdout
 import io
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -16,7 +17,10 @@ from video_landscaper import cli, conversion
 class Test01_LayoutTests(unittest.TestCase):
     def test_requested_defaults(self):
         args = cli.make_parser().parse_args(["input.mp4"])
-        self.assertEqual(vars(args), vars(conversion.ConversionOptions(input=Path("input.mp4"))))
+        self.assertEqual(
+            conversion.ConversionOptions(**vars(args)),
+            conversion.ConversionOptions(input=Path("input.mp4")),
+        )
         self.assertEqual((args.max_width, args.max_height), (1920, 1080))
         self.assertEqual((args.blur, args.preset), (90, "slow"))
 
@@ -173,6 +177,25 @@ class Test02_ConversionTests(unittest.TestCase):
         # short-clip overhead and normal deviation from the requested target.
         self.assertLess(len(encoded_audio) * 8 / 0.6, 60000)
 
+    def test_legacy_tv_output_uses_high_profile_and_explicit_audio_bitrate(self):
+        source = self.make_source(audio=True)
+        original = source.read_bytes()
+        messages = []
+        args = conversion.ConversionOptions(
+            input=source, max_width=320, max_height=180, crf=31,
+            audio_bitrate="32k", legacy_tv_compatibility=True,
+        )
+        output = conversion.convert(args, log=messages.append, hide_console=True)
+        metadata, frame = self.read_frame(output)
+        self.assertEqual(metadata["fps"], 10)
+        self.assertIn("profile High, level 4.0", "\n".join(messages))
+        self.assert_color(frame, 160, 0)
+        encoded_audio = self.audio_data(output)
+        self.assertTrue(encoded_audio)
+        self.assertNotEqual(encoded_audio, self.audio_data(source))
+        self.assertLess(len(encoded_audio) * 8 / 0.6, 60000)
+        self.assertEqual(source.read_bytes(), original)
+
     def test_phone_rotation_and_default_limits_cli(self):
         source = self.make_source()
         rotated = self.root / "rotated.mp4"
@@ -180,10 +203,13 @@ class Test02_ConversionTests(unittest.TestCase):
             "-display_rotation:v:0", "90", "-i", str(source), "-c", "copy",
             str(rotated),
         )
+        command_env = os.environ.copy()
+        command_env["APPDATA"] = str(self.root / "Roaming")
+        command_env["XDG_CONFIG_HOME"] = str(self.root / "config")
         result = subprocess.run(
             [sys.executable, str(Path(__file__).resolve().parents[1] / "video-landscaper-single.py"),
              str(rotated), "--duration", "0.2"],
-            capture_output=True, check=True,
+            capture_output=True, check=True, env=command_env,
         )
         self.assertIn(b"Saved:", result.stdout)
         output = conversion.output_path_for(rotated)

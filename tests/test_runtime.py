@@ -46,6 +46,42 @@ class ConversionRuntimeTests(unittest.TestCase):
             with self.subTest(original=original):
                 self.assertEqual(conversion.output_path_for(self.root / original), self.root / expected)
 
+    def test_legacy_tv_settings_control_command_and_take_priority_over_crf(self):
+        source = self.root / "source.mp4"
+        source.write_bytes(b"synthetic input for command inspection")
+        compatibility_options = {
+            "-profile:v": "high", "-level:v": "4.0",
+            "-maxrate": "10M", "-bufsize": "10M", "-refs": "3",
+        }
+        for enabled, requested_crf, expected_crf in (
+            (False, 18, 18), (False, 31, 31),
+            (True, 18, 20), (True, 31, 20),
+        ):
+            with self.subTest(enabled=enabled, crf=requested_crf):
+                args = conversion.ConversionOptions(
+                    input=source, output=self.root / f"output-{enabled}-{requested_crf}.mp4",
+                    crf=requested_crf, legacy_tv_compatibility=enabled,
+                )
+                self.assertEqual(args.effective_crf, expected_crf)
+                messages = []
+                with patch.object(conversion, "_run_conversion", return_value=0) as run:
+                    conversion.convert(args, log=messages.append, source_dimensions=(90, 160))
+                command = run.call_args.args[0]
+                self.assertEqual(command[command.index("-crf") + 1], str(expected_crf))
+                for flag, expected in compatibility_options.items():
+                    if enabled:
+                        self.assertEqual(command[command.index(flag) + 1], expected)
+                    else:
+                        self.assertNotIn(flag, command)
+                self.assertEqual(command[command.index("-c:v") + 1], "libx264")
+                self.assertEqual(command[command.index("-pix_fmt") + 1], "yuv420p")
+                self.assertEqual(command[command.index("-movflags") + 1], "+faststart")
+                self.assertEqual(command[command.index("-preset") + 1], "slow")
+                self.assertEqual(command[command.index("-c:a") + 1], "copy")
+                self.assertNotIn("-r", command)
+                self.assertTrue(any(f"CRF: {expected_crf}" in message for message in messages))
+                self.assertIn("Legacy TV compatibility: " + ("enabled" if enabled else "disabled"), messages)
+
     def test_video_info_reads_geometry_and_duration_with_one_probe(self):
         source = self.make_source()
         with patch.object(conversion.subprocess, "Popen", wraps=subprocess.Popen) as probe:

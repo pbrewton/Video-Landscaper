@@ -6,10 +6,47 @@ import tempfile
 import time
 import tkinter as tk
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from video_landscaper import gui as batch_gui
 from video_landscaper.batch import BatchItem, BatchResult
+from video_landscaper.config import EncodingSettings
+
+
+class GuiStartupTests(unittest.TestCase):
+    def test_settings_load_once_before_tk_and_same_snapshot_reaches_app(self):
+        settings = EncodingSettings(legacy_tv_compatibility=True)
+        startup_order = []
+        root = Mock()
+
+        def load():
+            startup_order.append("settings")
+            return settings
+
+        def create_root():
+            startup_order.append("tk")
+            return root
+
+        with patch.object(batch_gui, "load_settings", side_effect=load) as loader, \
+                patch.object(batch_gui.tk, "Tk", side_effect=create_root), \
+                patch.object(batch_gui, "BatchApp") as app:
+            result = batch_gui.main(["C:\\Videos"])
+        self.assertEqual(result, 0)
+        self.assertEqual(startup_order, ["settings", "tk"])
+        loader.assert_called_once_with()
+        app.assert_called_once_with(root, initial_folder=Path("C:\\Videos"), settings=settings)
+        self.assertIs(app.call_args.kwargs["settings"], settings)
+        root.mainloop.assert_called_once_with()
+        root.destroy.assert_called_once_with()
+
+    def test_bad_settings_fail_before_creating_a_window(self):
+        for error in (ValueError("invalid setting"), OSError("cannot read settings")):
+            with self.subTest(error=type(error).__name__):
+                with patch.object(batch_gui, "load_settings", side_effect=error), \
+                        patch.object(batch_gui.tk, "Tk") as create_root:
+                    with self.assertRaises(type(error)):
+                        batch_gui.main([])
+                create_root.assert_not_called()
 
 
 class BatchGuiTests(unittest.TestCase):
@@ -69,8 +106,10 @@ class BatchGuiTests(unittest.TestCase):
 
     def test_batch_worker_updates_status_log_and_removes_completed_checkbox(self):
         self.add_items()
+        received_settings = []
 
-        def fake_run(items, *, on_item, on_log, on_progress, stop_event):
+        def fake_run(items, *, settings, on_item, on_log, on_progress, stop_event):
+            received_settings.append(settings)
             item = next(item for item in items if item.selected)
             item.status = "converting"
             item.detail = "Converting"
@@ -93,6 +132,25 @@ class BatchGuiTests(unittest.TestCase):
         self.assertFalse(self.app.tree.item(row, "image"))
         self.assertEqual(self.app.tree.item(row, "tags"), ("green",))
         self.assertIn("Synthetic conversion complete", "".join(self.app.log_lines))
+        self.assertEqual(len(received_settings), 1)
+        self.assertIs(received_settings[0], self.app.settings)
+
+    def test_supplied_settings_do_not_reload_and_display_actual_crf_and_mode(self):
+        self.assertFalse(self.app.settings.legacy_tv_compatibility)
+        self.assertIn("CRF: 18", self.app.settings_label.cget("text"))
+        self.assertIn("Legacy TV compatibility: Off", self.app.settings_label.cget("text"))
+        settings = EncodingSettings(legacy_tv_compatibility=True)
+        window = tk.Toplevel(self.root)
+        window.withdraw()
+        try:
+            with patch.object(batch_gui, "load_settings") as loader:
+                app = batch_gui.BatchApp(window, auto_scan=False, settings=settings)
+            loader.assert_not_called()
+            self.assertIs(app.settings, settings)
+            self.assertIn("CRF: 20", app.settings_label.cget("text"))
+            self.assertIn("Legacy TV compatibility: On", app.settings_label.cget("text"))
+        finally:
+            window.destroy()
 
     def test_status_has_no_duplicate_detail_and_selected_detail_updates(self):
         self.add_items()

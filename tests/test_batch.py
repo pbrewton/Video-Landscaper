@@ -11,6 +11,7 @@ from unittest.mock import patch
 import imageio_ffmpeg
 
 from video_landscaper import batch
+from video_landscaper.config import EncodingSettings
 
 
 class BatchTests(unittest.TestCase):
@@ -101,6 +102,42 @@ class BatchTests(unittest.TestCase):
             self.assertFalse(row.source.exists())
             self.assertEqual(row.source.with_name(row.source.name + ".original").read_bytes(),
                              original_data[row.source.name])
+
+    def test_batch_passes_supplied_compatibility_setting_to_every_conversion(self):
+        self.video("first.mp4")
+        self.video("second.mp4")
+        rows = self.scan()
+        settings = EncodingSettings(legacy_tv_compatibility=True)
+
+        def convert(options, **kwargs):
+            options.output.write_bytes(b"converted video")
+            return options.output
+
+        with patch.object(batch.conversion, "convert", side_effect=convert) as converter, \
+                patch.object(batch, "_verify_output"):
+            result = self.run_items(rows, settings=settings)
+        self.assertEqual((result.completed, result.failed), (2, 0))
+        self.assertEqual(converter.call_count, 2)
+        self.assertTrue(all(call.args[0].legacy_tv_compatibility for call in converter.call_args_list))
+        self.assertTrue(all(call.args[0].effective_crf == 20 for call in converter.call_args_list))
+        self.assertTrue(all(row.original.is_file() for row in rows))
+
+    def test_batch_defaults_compatibility_off_without_loading_settings(self):
+        self.video()
+        rows = self.scan()
+
+        def convert(options, **kwargs):
+            options.output.write_bytes(b"converted video")
+            return options.output
+
+        with patch.object(batch.conversion, "convert", side_effect=convert) as converter, \
+                patch.object(batch, "_verify_output"), \
+                patch("video_landscaper.config.load_settings") as loader:
+            result = self.run_items(rows)
+        self.assertEqual((result.completed, result.failed), (1, 0))
+        loader.assert_not_called()
+        self.assertFalse(converter.call_args.args[0].legacy_tv_compatibility)
+        self.assertEqual(converter.call_args.args[0].effective_crf, 18)
 
     def test_scan_uses_display_rotation_for_portrait_selection(self):
         stored = self.video("stored.mp4", size=(32, 18))
