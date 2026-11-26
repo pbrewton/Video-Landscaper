@@ -32,6 +32,11 @@ class ConversionOptions:
     duration: float | None = None
     audio_bitrate: str | None = None
     overwrite: bool = False
+    legacy_tv_compatibility: bool = False
+
+    @property
+    def effective_crf(self):
+        return 20 if self.legacy_tv_compatibility else self.crf
 
 
 class ConversionCancelled(RuntimeError):
@@ -282,10 +287,15 @@ def convert(args, *, log=None, progress=None, cancel_event=None, source_dimensio
         ffmpeg, "-hide_banner", "-nostdin", "-y", "-i", str(source),
         "-filter_complex", build_filter(layout, args.blur),
         "-map", "[out]", "-map", "0:a?",
-        "-c:v", "libx264", "-crf", str(args.crf), "-preset", args.preset,
+        "-c:v", "libx264", "-crf", str(args.effective_crf), "-preset", args.preset,
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
     ]
+    if args.legacy_tv_compatibility:
+        command.extend([
+            "-profile:v", "high", "-level:v", "4.0",
+            "-maxrate", "10M", "-bufsize", "10M", "-refs", "3",
+        ])
     if progress is not None:
         command.extend(["-progress", "pipe:1"])
     if log is not None or progress is not None:
@@ -301,7 +311,8 @@ def convert(args, *, log=None, progress=None, cancel_event=None, source_dimensio
     try:
         report(f"Output: {destination}")
         report(f"Picture: {source_width} x {source_height} -> {layout.foreground_width} x {layout.foreground_height}")
-        report(f"Canvas: {layout.output_width} x {layout.output_height} (maximum {args.max_width} x {args.max_height}); blur: {args.blur}; CRF: {args.crf}")
+        report(f"Canvas: {layout.output_width} x {layout.output_height} (maximum {args.max_width} x {args.max_height}); blur: {args.blur}; CRF: {args.effective_crf}")
+        report("Legacy TV compatibility: " + ("enabled" if args.legacy_tv_compatibility else "disabled"))
         report("Audio:  " + (f"AAC at {args.audio_bitrate}" if args.audio_bitrate else "copy original audio"))
         report(f"FFmpeg: {ffmpeg}")
         returncode = _run_conversion(

@@ -108,6 +108,13 @@ portrait-to-landscape batch conversion and the CLI's default landscape and custo
 portrait output. Test installation and uninstallation on Windows using copies of
 videos. The **Video Landscaper** Start Menu shortcut should open the GUI.
 
+Check that `_internal/video_landscaper/VideoLandscaper.ini` is present. Test
+both `false` and `true` for `legacy_tv_compatibility` in the per-user INI,
+restarting the GUI between changes. Confirm the CLI reads the same setting,
+normal sizing and audio-copy behavior are preserved, and reinstalling does not
+overwrite an existing INI. The enabled mode uses the proper encoder settings;
+the [README](../README.md#ini-settings) describes their scope.
+
 Commit the source, notices, licenses, and build changes together. Attach the
 `VideoLandscaper-Setup.exe` installer and any portable ZIP, plus the
 corresponding-source access information, to the release tagged for that commit.

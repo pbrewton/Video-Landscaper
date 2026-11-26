@@ -75,6 +75,7 @@ reference_python_license = license_dir / f"Python-{provenance['python_version']}
 if python_license.read_text(encoding='utf-8-sig') != reference_python_license.read_text(encoding='utf-8'):
     raise SystemExit('Python license changed. Refresh the version-matched Python notices before packaging.')
 datas, binaries, hiddenimports = collect_all('imageio_ffmpeg')
+datas.append((str(project_root / 'video_landscaper' / 'VideoLandscaper.ini'), 'video_landscaper'))
 datas.append((str(project_root / 'LICENSE'), '.'))
 datas.append((str(project_root / 'THIRD_PARTY_NOTICES.md'), '.'))
 datas.append((str(license_dir), 'licenses'))

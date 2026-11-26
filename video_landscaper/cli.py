@@ -7,6 +7,7 @@ import re
 import sys
 
 from .conversion import PRESETS, ConversionCancelled, ConversionOptions, convert
+from .config import load_settings
 
 
 def _even_dimension(value):
@@ -61,7 +62,7 @@ def make_parser():
     parser.add_argument(
         "--crf", type=int, choices=range(0, 52), metavar="0-51",
         default=ConversionOptions.crf,
-        help="H.264 quality; lower is better/larger (default: %(default)s)",
+        help="H.264 quality; lower is better/larger (default: %(default)s; INI legacy TV mode forces 20)",
     )
     parser.add_argument(
         "--preset", choices=PRESETS, default=ConversionOptions.preset,
@@ -74,8 +75,12 @@ def make_parser():
 
 
 def main(argv=None):
-    args = ConversionOptions(**vars(make_parser().parse_args(argv)))
+    parsed = make_parser().parse_args(argv)
     try:
+        settings = load_settings()
+        args = ConversionOptions(
+            **vars(parsed), legacy_tv_compatibility=settings.legacy_tv_compatibility,
+        )
         output = convert(args)
     except (KeyboardInterrupt, ConversionCancelled):
         print("\nConversion cancelled.", file=sys.stderr)

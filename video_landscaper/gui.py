@@ -14,6 +14,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from . import batch as engine
 from . import conversion
+from .config import EncodingSettings, load_settings
 
 
 STATUS_TEXT = {
@@ -46,8 +47,9 @@ def duration_text(seconds):
 
 
 class BatchApp:
-    def __init__(self, root, initial_folder=None, *, auto_scan=True):
+    def __init__(self, root, initial_folder=None, *, auto_scan=True, settings=None):
         self.root = root
+        self.settings = settings if settings is not None else EncodingSettings()
         self.folder = None
         self.items = {}
         self.row_ids = {}
@@ -138,11 +140,19 @@ class BatchApp:
         self.rescan_button.grid(row=0, column=2)
 
         ttk.Label(outer, text="The following videos will be converted from Portrait to Landscape (16:9) with:", style="Header.TLabel").grid(row=1, column=0, sticky="w")
-        defaults = conversion.ConversionOptions(input=Path("unused"))
-        ttk.Label(
+        defaults = conversion.ConversionOptions(
+            input=Path("unused"),
+            legacy_tv_compatibility=self.settings.legacy_tv_compatibility,
+        )
+        compatibility = "On" if self.settings.legacy_tv_compatibility else "Off"
+        self.settings_label = ttk.Label(
             outer,
-            text=f"Max resolution: {defaults.max_width} × {defaults.max_height}  ·  Blur: {defaults.blur}  ·  CRF: {defaults.crf}  ·  {defaults.preset.capitalize()} encoding  ·  Original audio",
-        ).grid(row=2, column=0, sticky="w", pady=(5, 12))
+            text=(
+                f"Max resolution: {defaults.max_width} × {defaults.max_height}  ·  Blur: {defaults.blur}  ·  CRF: {defaults.effective_crf}  ·  {defaults.preset.capitalize()} encoding  ·  Original audio\n"
+                f"Legacy TV compatibility: {compatibility}"
+            ),
+        )
+        self.settings_label.grid(row=2, column=0, sticky="w", pady=(5, 12))
 
         selection_bar = ttk.Frame(outer)
         selection_bar.grid(row=3, column=0, sticky="ew", pady=(0, 8))
@@ -378,7 +388,7 @@ class BatchApp:
 
         def work():
             try:
-                result = engine.run_batch(work_items, on_item=self._queue_item, on_log=self._queue_log, on_progress=self._queue_progress, stop_event=self.stop_event)
+                result = engine.run_batch(work_items, settings=self.settings, on_item=self._queue_item, on_log=self._queue_log, on_progress=self._queue_progress, stop_event=self.stop_event)
                 self.events.put(("finished", result))
             except Exception as exc:
                 self.events.put(("error", (str(exc), traceback.format_exc())))
@@ -518,9 +528,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Video Landscaper: choose and batch-convert portrait videos with a Windows GUI.")
     parser.add_argument("folder", nargs="?", type=Path, help="optional starting folder; otherwise show the folder chooser")
     args = parser.parse_args(argv)
+    settings = load_settings()
     root = tk.Tk()
     try:
-        BatchApp(root, initial_folder=args.folder)
+        BatchApp(root, initial_folder=args.folder, settings=settings)
         root.mainloop()
     finally:
         try:

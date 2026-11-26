@@ -9,6 +9,7 @@ import tempfile
 import threading
 
 from . import conversion
+from .config import EncodingSettings
 
 
 HISTORY_NAME = ".pillarbox-batch.json"
@@ -228,7 +229,8 @@ def _verify_output(ffmpeg, item, args):
         raise RuntimeError(f"Output verification failed: expected {expected.output_width} x {expected.output_height}, found {actual[0]} x {actual[1]}.")
 
 
-def run_batch(items, *, on_item=None, on_log=None, on_progress=None, stop_event=None):
+def run_batch(items, *, settings=None, on_item=None, on_log=None, on_progress=None, stop_event=None):
+    settings = settings if settings is not None else EncodingSettings()
     log = on_log or (lambda message: None)
     notify = on_item or (lambda item: None)
     stop_event = stop_event or threading.Event()
@@ -264,7 +266,10 @@ def run_batch(items, *, on_item=None, on_log=None, on_progress=None, stop_event=
         for item in selected:
             if stop_event.is_set():
                 break
-            args = conversion.ConversionOptions(input=item.source, output=item.output)
+            args = conversion.ConversionOptions(
+                input=item.source, output=item.output,
+                legacy_tv_compatibility=settings.legacy_tv_compatibility,
+            )
             try:
                 resume = _check_paths(item, history)
                 if not resume:

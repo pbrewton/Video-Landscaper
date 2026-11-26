@@ -59,6 +59,14 @@ The project's MIT `LICENSE`, `THIRD_PARTY_NOTICES.md`, and the `licenses` folder
 are included as readable files in `_internal`. The build also includes the
 interpreter's original license at `_internal/licenses/Python/LICENSE.txt`.
 
+The default settings template is bundled at
+`_internal/video_landscaper/VideoLandscaper.ini` and is also included when
+building a Python wheel. Both apps create the file at
+`%APPDATA%\VideoLandscaper\VideoLandscaper.ini` on their first launch,
+only if it is missing. The installer copies the template as part of the bundle;
+it never replaces an existing INI. Uninstallation leaves that INI in place.
+See [INI settings](../README.md#ini-settings) for options in that file.
+
 The spec is a maintained build configuration, written in Python. It names both
 source launchers, collects `imageio_ffmpeg` and its FFmpeg executable, and creates
 the windowed GUI and console CLI in one app folder. Application modules use
@@ -92,7 +100,7 @@ is `dist\VideoLandscaper-Setup.exe`. NSIS must be in `PATH` or installed at
 You can also compile the `.nsi` directly with NSIS after building the app folder:
 
 ```powershell
-& "C:\Program Files (x86)\NSIS\makensis.exe" .\installer\VideoLandscaper.nsi
+& "C:\Program Files (x86)\NSIS\makensis.exe" (Resolve-Path .\installer\VideoLandscaper.nsi).Path
 ```
 
 A welcome page waits for **Next** before copying files.

@@ -21,6 +21,7 @@ blurred backgrounds above & below.
 | **Customizable Conversion** | Convert individual videos via CLI, with control over output aspect ratio, blur strength, encoding quality, preview length, and more |
 | **Multiple Ways to Run** | Use the Windows GUI, command-line interface (CLI), or run the Python source scripts directly |
 | **Standalone Executables** | Run the compiled GUI and CLI apps without installing Python or FFmpeg separately |
+| **Legacy TV Compatibility** | Encode videos for compatibility with certain older TVs |
 
 ## Installation
 
@@ -66,6 +67,49 @@ launchers from the source tree.
 
 The GUI converts a batch of portrait videos to 16:9. The CLI converts one video
 at a time and supports custom settings.
+
+### INI settings
+
+Both the GUI and CLI read the same per-user settings file when they start, whether
+you run the Python scripts or the compiled apps:
+
+```text
+%APPDATA%\VideoLandscaper\VideoLandscaper.ini
+```
+
+The first launch creates this file if it is missing. To edit it after
+that first launch, run this in PowerShell:
+
+```powershell
+notepad "$env:APPDATA\VideoLandscaper\VideoLandscaper.ini"
+```
+
+The default is:
+
+```ini
+[Encoding]
+legacy_tv_compatibility = false
+```
+
+Change `false` to `true` to enable the encoder settings for successful
+playback on LG 55LW5600-UA and similar TVs. Restart the GUI after saving.
+
+With `true`, this mode uses H.264 (`libx264`) with High profile, Level 4.0,
+`yuv420p`, CRF 20, a `10M` video rate limit, a `10M` buffer, and three reference
+frames. The mode forces CRF 20 even if you specify a different CLI `--crf`.
+The existing sizing rules and frame rate are retained, and original audio is
+still copied unless you request AAC with `--audio-bitrate`. MP4 faststart
+remains enabled in either mode.
+
+With `false`, normal encoding settings apply, including the default CRF 18 or
+your CLI `--crf` value.
+
+An invalid or unreadable INI file throws an error identifying the file.
+Existing settings are preserved during upgrades and uninstall. The
+[INI in the source package](video_landscaper/VideoLandscaper.ini) is the template
+for the initial file. On other
+platforms, the file is under `$XDG_CONFIG_HOME/VideoLandscaper`, or
+`~/.config/VideoLandscaper` if that variable is unset.
 
 ### Batch GUI
 
@@ -241,7 +285,7 @@ Available settings:
 | `--max-width` | `1920` | Maximum output width; positive even integer; sets target ratio with max-height |
 | `--max-height` | `1080` | Maximum output height; positive even integer; sets target ratio with max-width |
 | `--blur` | `90` | Gaussian blur strength, 0-1024; higher is blurrier |
-| `--crf` | `18` | H.264 quality, 0-51; lower gives higher quality and larger files |
+| `--crf` | `18` | H.264 quality, 0-51; lower gives higher quality and larger files; the INI `legacy_tv_compatibility=true` overrides to 20 |
 | `--preset` | `slow` | Encoder speed/compression tradeoff; try `fast` or `veryfast` |
 | `--duration` | Entire video | Convert the first N seconds |
 | `--audio-bitrate` | Copy original audio | Set e.g. `64k` to re-encode audio to AAC at a target bitrate per stream |
@@ -297,6 +341,8 @@ video-landscaper-batch.pyw       Batch GUI launcher
 video_landscaper/                Imported application code
     __init__.py
     conversion.py               FFmpeg, sizing, audio, progress
+    config.py                   INI file loading and validation
+    VideoLandscaper.ini         Template for initial INI file
     cli.py                      Command-line arguments and main function
     batch.py                    Scanning, conflicts, recovery, renaming
     gui.py                      Tkinter interface

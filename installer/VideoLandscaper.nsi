@@ -94,7 +94,9 @@ FunctionEnd
 Section "Install"
   SetOutPath "$InstDir"
   SetOverwrite On
-  ; Include the entire onedir bundle, preserving _internal and its contents.
+  ; Include the entire onedir bundle, including the default INI template.
+  ; At first launch the app creates $APPDATA\VideoLandscaper\VideoLandscaper.ini
+  ; only if missing. Upgrades therefore preserve the user's INI setting.
   File /r "${APP_DIR}\*"
   ; The new GUI/CLI pair replaces the old app-owned executable on upgrade.
   Delete "$InstDir\${APP_ID}.exe"
@@ -113,6 +115,7 @@ Section "Install"
 SectionEnd
 
 Section "Uninstall"
+  ; Leave the user's INI in $APPDATA\VideoLandscaper for future reinstalls.
   Delete "$SMPrograms\${SHORTCUT_NAME}.lnk"
   ; Remove only the known app payload, not the entire install directory tree.
   Delete "$InstDir\${GUI_EXE}"

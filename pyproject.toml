@@ -23,3 +23,6 @@ include = ["video_landscaper*"]
 
 [tool.setuptools]
 include-package-data = false
+
+[tool.setuptools.package-data]
+video_landscaper = ["VideoLandscaper.ini"]
